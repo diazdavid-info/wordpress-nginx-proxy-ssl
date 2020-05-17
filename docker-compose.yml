@@ -1,0 +1,121 @@
+version: "3.7"
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    ports:
+      - 80:80
+      - 443:443
+    container_name: nginx-proxy
+    networks:
+      service_network:
+    volumes:
+      - ./my_proxy.conf:/etc/nginx/conf.d/my_proxy.conf:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  nginx-proxy-letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    environment:
+      NGINX_PROXY_CONTAINER: "nginx-proxy"
+    networks:
+      service_network:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+    networks:
+      service_network:
+    volumes:
+      - db:/var/lib/mysql
+
+  wordpress-diazdavid-es:
+    image: wordpress:5.4.1-php7.4-apache
+    container_name: wordpress.diazdavid.es
+    expose:
+      - 80
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      VIRTUAL_HOST: wordpress.diazdavid.es
+      LETSENCRYPT_HOST: wordpress.diazdavid.es
+      LETSENCRYPT_EMAIL: diazdavid.info@gmail.com
+    networks:
+      service_network:
+    volumes:
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - wordpress:/var/www/html
+
+  wordpress2-diazdavid-es-nginx:
+    image: nginx:1.18.0-alpine
+    container_name: wordpress2.diazdavid.es.nginx
+    expose:
+      - 80
+    environment:
+      VIRTUAL_HOST: wordpress2.diazdavid.es
+      LETSENCRYPT_HOST: wordpress2.diazdavid.es
+      LETSENCRYPT_EMAIL: diazdavid.info@gmail.com
+    networks:
+      service_network:
+    volumes:
+      - wordpress2:/var/www/html
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+
+  wordpress2-diazdavid-es-fpm:
+    image: wordpress:5.4.1-php7.4-fpm-alpine
+    container_name: wordpress2.diazdavid.es.fpm
+    expose:
+      - 9000
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress2
+      WORDPRESS_DB_PASSWORD: wordpress2
+      WORDPRESS_DB_NAME: wordpress2
+    networks:
+      service_network:
+    volumes:
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - wordpress2:/var/www/html
+
+  wordpress3-diazdavid-es:
+    image: wordpress:5.4.1-php7.4-apache
+    container_name: wordpress3.diazdavid.es
+    expose:
+      - 80
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress3
+      WORDPRESS_DB_PASSWORD: wordpress3
+      WORDPRESS_DB_NAME: wordpress3
+      VIRTUAL_HOST: wordpress3.diazdavid.es
+      LETSENCRYPT_HOST: wordpress3.diazdavid.es
+      LETSENCRYPT_EMAIL: diazdavid.info@gmail.com
+    networks:
+      service_network:
+    volumes:
+      - ./php.ini:/usr/local/etc/php/php.ini
+      - wordpress3:/var/www/html
+
+networks:
+  service_network:
+    name: wordpress
+
+volumes:
+  nginx-certs:
+  nginx-vhost:
+  nginx-html:
+  db:
+  wordpress:
+  wordpress2:
+  wordpress3:
+
